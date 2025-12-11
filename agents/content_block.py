@@ -1,94 +1,77 @@
+import logging
+
+logger = logging.getLogger()
+
+# Content Block Node
 class ContentBlockAgent:
-    def run(self, product):
-        try:
-            return {
-                "summary_block": self.create_summary(product),
-                "benefits_block": self.create_benefits(product),
-                "usage_block": self.create_usage(product),
-                "ingredients_block": self.create_ingredients(product),
-                "side_effects_block": self.create_side_effects(product),
-                "price_block": self.create_price(product),
-            }
-        except Exception as e:
-            print(f"ContentBlockAgent.run failed: {e}")
-            return {}
-
-    # Function to create summary block
-    def create_summary(self, product):
-        try:
-            name = product.name
-            conc = product.concentration
-            skins = ", ".join(product.skin_type)
-            main_benefit = product.benefits[0] if product.benefits else ""
-            summary = f"{name} with {conc} is suitable for {skins.lower()} skin and helps with {main_benefit.lower()}."
-            return summary.strip()
-        except Exception as e:
-            print(f"create_summary failed: {e}")
-            return ""
-
-    # Function to create benefits block
-    def create_benefits(self, product):
-        try:
-            return [
-                {
-                    "benefit": b,
-                    "explanation": f"This product supports {b.lower()} based on the provided product details."
-                }
-                for b in product.benefits
-            ]
-        except Exception as e:
-            print(f"create_benefits failed: {e}")
-            return []
-
-    # Function to create usage block
-    def create_usage(self, product):
-        try:
-            raw = product.use
-            steps = [s.strip() for s in raw.replace("•", ".").split(".") if s.strip()]
-            return [{"step_number": i+1, "instruction": step} for i, step in enumerate(steps)]
-        except Exception as e:
-            print(f"create_usage failed: {e}")
-            return []
-
-    # Function to create ingredients block
-    def create_ingredients(self, product):
-        try:
-            return [{"ingredient": ing} for ing in product.ingredients]
-        except Exception as e:
-            print(f"create_ingredients failed: {e}")
-            return []
+    """Content Block Agent: Generates structured content blocks for a product"""
+    
+    def run(self, state):
+        """LangGraph Node: Generate content blocks for Product A"""
+        logger.info("Content Block Node loaded successfully")
         
-    # Function to create side effects block
-    def create_side_effects(self, product):
         try:
-            text = product.side_effects
-            return {
-                "description": text,
-                "severity": self._severity(text),
+            product = state.get('product_a', {})
+            
+            # Function to create summary block for the product
+            def create_summary() -> str:
+                name = product.get('name', '')
+                conc = product.get('concentration', '')
+                skins = ", ".join(product.get('skin_type', []))
+                benefits = product.get('benefits', [])
+                main_benefit = benefits[0] if benefits else ""
+                return f"{name} with {conc} is suitable for {skins.lower()} skin and helps with {main_benefit.lower()}."
+            
+            # Function to create benefits block for the product
+            def create_benefits() -> list:
+                return [
+                    {
+                        "benefit": b,
+                        "explanation": f"This product supports {b.lower()} based on the provided product details."
+                    }
+                    for b in product.get('benefits', [])
+                ]
+            
+            # Function to create usage block for the product
+            def create_usage() -> list:
+                raw = product.get('use', '')
+                steps = [s.strip() for s in raw.replace("•", ".").split(".") if s.strip()]
+                return [{"step_number": i+1, "instruction": step} for i, step in enumerate(steps)]
+            
+            # Function to create ingredients block for the product
+            def create_ingredients() -> list:
+                return [{"ingredient": ing} for ing in product.get('ingredients', [])]
+            
+            # Function to create side-effects block for the product
+            def create_side_effects() -> dict:
+                text = product.get('side_effects', '')
+                severity = "low" if any(word in text.lower() for word in ["tingling", "mild"]) else \
+                          "high" if any(word in text.lower() for word in ["rash", "burn"]) else "medium"
+                return {"description": text, "severity": severity}
+            
+            # Function to create price block for the product
+            def create_price() -> dict:
+                price_str = product.get('price', '')
+                digits = "".join(ch for ch in price_str if ch.isdigit())
+                value = int(digits) if digits else None
+                return {"value": value, "currency": "INR"}
+            
+            content_blocks = {
+                "summary_block": create_summary(),
+                "benefits_block": create_benefits(),
+                "usage_block": create_usage(),
+                "ingredients_block": create_ingredients(),
+                "side_effects_block": create_side_effects(),
+                "price_block": create_price(),
             }
+            
+            state['content_a'] = content_blocks
+            logger.info("Content blocks generated successfully")
+            return state
+        
         except Exception as e:
-            print(f"create_side_effects failed: {e}")
-            return {"description": "", "severity": "medium"}
-
-    # Helper function to assign the severity of the side effects
-    def _severity(self, text):
-        try:
-            text = text.lower()
-            if "tingling" in text or "mild" in text:
-                return "low"
-            if "rash" in text or "burn" in text:
-                return "high"
-            return "medium"
-        except Exception as e:
-            print(f"_severity failed: {e}")
-            return "medium"
-
-    # Function to create the price block
-    def create_price(self, product):
-        try:
-            digits = "".join(ch for ch in product.price if ch.isdigit())
-            value = int(digits) if digits else None
-            return {"value": value, "currency": "INR"}
-        except Exception as e:
-            print(f"create_price failed: {e}")
-            return {"value": None, "currency": "INR"}
+            error_msg = f"Error generating content blocks: {e}"
+            logger.error(error_msg)
+            state['error'] = error_msg
+            state['content_a'] = {}
+            return state

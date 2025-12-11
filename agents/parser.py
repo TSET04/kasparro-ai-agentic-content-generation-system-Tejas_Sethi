@@ -1,6 +1,11 @@
-# Template class for product's json 
+import logging
+
+logger = logging.getLogger()
+
 class Product:
-    def __init__(self, name="", concentration="", skin_type=None, ingredients=None, use="", benefits=None, price="", side_effects=""):
+    """Template class for product's json"""
+    def __init__(self, name="", concentration="", skin_type=None, ingredients=None, 
+                 use="", benefits=None, price="", side_effects=""):
         try:
             self.name = name
             self.concentration = concentration
@@ -11,32 +16,72 @@ class Product:
             self.price = price
             self.side_effects = side_effects
         except Exception as e:
-            print(f"Error initializing Product: {e}")
+            logger.error(f"Error initializing Product: {e}")
 
+# Parser Node Function
 class ParserAgent:
-    def run(self, template):
+    """Parser Agent: Converts raw JSON product data to structured Product objects"""
+    
+    def run_product_a(self, state):
+        """LangGraph Node: Parse Product A from template"""
+        logger.info("Parser Node for Product A loaded successfully")
+        
         try:
-            name = template.get("product_name", "")
-            concentration = template.get("concentration", "")
-            skin_type = template.get("skin_type", [])
-            ingredients = template.get("key_ingredients", [])
-            use = template.get("how_to_use", "")
-            benefits = template.get("benefits", [])
-            price = template.get("price", "")
-            side_effects = template.get("side_effects", "")
-
+            template = state.get('template', [])
+            if len(template) < 1:
+                raise ValueError("Template must contain at least 1 product for Product A")
+            
+            product_dict = template[0]
+            
             product = Product(
-                name=name,
-                concentration=concentration,
-                skin_type=skin_type,
-                ingredients=ingredients,
-                use=use,
-                benefits=benefits,
-                price=price,
-                side_effects=side_effects
+                name=product_dict.get("product_name", ""),
+                concentration=product_dict.get("concentration", ""),
+                skin_type=product_dict.get("skin_type", []),
+                ingredients=product_dict.get("key_ingredients", []),
+                use=product_dict.get("how_to_use", ""),
+                benefits=product_dict.get("benefits", []),
+                price=product_dict.get("price", ""),
+                side_effects=product_dict.get("side_effects", "")
             )
-
-            return product
+            
+            state['product_a'] = product.__dict__
+            logger.info(f"Product A parsed: {product.name}")
+            return state
+        
         except Exception as e:
-            print(f"Error in ParserAgent.run Method: {e}")
-            return None
+            error_msg = f"Error parsing Product A: {e}"
+            logger.error(error_msg)
+            state['error'] = error_msg
+            return state
+
+    def run_product_b(self, state):
+        """LangGraph Node: Parse Product B from template"""
+        logger.info("Parser Node for Product B loaded successfully")
+        
+        try:
+            template = state.get('template', [])
+            if len(template) < 2:
+                raise ValueError("Template must contain at least 2 products for Product B")
+            
+            product_dict = template[1]
+            
+            product = Product(
+                name=product_dict.get("product_name", ""),
+                concentration=product_dict.get("concentration", ""),
+                skin_type=product_dict.get("skin_type", []),
+                ingredients=product_dict.get("key_ingredients", []),
+                use=product_dict.get("how_to_use", ""),
+                benefits=product_dict.get("benefits", []),
+                price=product_dict.get("price", ""),
+                side_effects=product_dict.get("side_effects", "")
+            )
+            
+            state['product_b'] = product.__dict__
+            logger.info(f"Product B parsed: {product.name}")
+            return state
+        
+        except Exception as e:
+            error_msg = f"Error parsing Product B: {e}"
+            logger.error(error_msg)
+            state['error'] = error_msg
+            return state

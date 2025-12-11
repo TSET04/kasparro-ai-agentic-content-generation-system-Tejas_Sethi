@@ -1,30 +1,46 @@
 import random
+import logging
 
+logger = logging.getLogger()
+
+# Page Assembler Node
 class PageAssemblerAgent:
+    """Page Assembler Agent: Assembles product page from product, content, and FAQ data"""
     
-    def run(self, product, content_block, faqs):
+    def run(self, state):
+        """LangGraph Node: Assemble product page from product, content, and FAQ"""
+        logger.info("Page Assemble Node loaded successfully")
+        
         try:
-            # Converting product object to dictionary
-            product_dict = product.__dict__
+            product = state.get('product_a', {})
+            content_block = state.get('content_a', {})
+            faqs = state.get('faq_a', {})
             
-            # Generating random number for Id
-            id = random.randint(1000000, 10000000)
-            result = {'id': id}
-            result.update({'product_name': product_dict.get('name', '')})
-
-            # Error handling for content block and faqs
+            # Ensure dictionaries are properly formatted
             if not isinstance(content_block, dict):
-                print("Warning: content_block is not a dict. Using empty dict.")
+                logger.warning("content_block is not a dict. Using empty dict.")
                 content_block = {}
             if not isinstance(faqs, dict):
-                print("Warning: faqs is not a dict. Using empty dict.")
+                logger.warning("faqs is not a dict. Using empty dict.")
                 faqs = {}
-
-            # Appending dictionaries
-            result = result | content_block
-            result = result | faqs
-
-            return result
+            
+            # Assemble the final product page
+            page_id = random.randint(1000000, 10000000)
+            product_page = {
+                'id': page_id,
+                'product_name': product.get('name', '')
+            }
+            
+            product_page.update(content_block)
+            product_page.update(faqs)
+            
+            state['product_page'] = product_page
+            logger.info("Product page assembled successfully")
+            return state
+        
         except Exception as e:
-            print(f"PageAssemblerAgent.run failed: {e}")
-            return {'id': None, 'product_name': '', **(content_block if isinstance(content_block, dict) else {}), **(faqs if isinstance(faqs, dict) else {})}
+            error_msg = f"Error assembling product page: {e}"
+            logger.error(error_msg)
+            state['error'] = error_msg
+            state['product_page'] = {}
+            return state

@@ -1,3 +1,7 @@
 python-dotenv
 requests
 mistralai
+langgraph
+langchain
+langchain-mistralai
+langchain-core
